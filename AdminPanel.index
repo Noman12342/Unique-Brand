@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - UNIQUE BRAND</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles matching the user website */
+        body {
+            font-family: 'Inter', 'Hind Siliguri', sans-serif;
+            background-color: #FFEAEA;
+            color: #333;
+        }
+        .bg-primary { background-color: #9ECAD6; }
+        .bg-secondary { background-color: #748DAE; }
+        .text-primary { color: #748DAE; }
+        .smooth-transition {
+            transition: all 0.3s ease-in-out;
+        }
+        /* Shake animation for login error */
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .shake {
+            animation: shake 0.82s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        .form-input {
+            border: 1px solid #D1D5DB; /* gray-300 */
+        }
+        .form-input:focus {
+            box-shadow: 0 0 0 2px rgba(116, 141, 174, 0.4);
+            border-color: #9ECAD6;
+        }
+        .nav-link.active {
+            background-color: #9ECAD6;
+            color: white;
+        }
+        /* Loader animation */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #748DAE;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Backdrop Overlay -->
+    <div id="backdrop" class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40 hidden"></div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-sm p-8">
+            <h2 class="text-2xl font-bold text-primary text-center mb-6">Admin Login</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="adminId" class="block text-sm font-medium text-gray-700">Admin ID</label>
+                    <input type="text" id="adminId" class="form-input mt-1 block w-full rounded-md shadow-sm p-2">
+                </div>
+                <div>
+                    <label for="adminPass" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="adminPass" class="form-input mt-1 block w-full rounded-md shadow-sm p-2">
+                </div>
+                <p id="login-error" class="text-red-500 text-sm text-center h-4"></p>
+                <button id="login-btn" class="w-full bg-secondary text-white py-2 rounded-lg font-semibold smooth-transition hover:bg-primary">Login</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Side Menu -->
+    <div id="side-menu" class="fixed top-0 right-0 w-72 h-full bg-white shadow-2xl z-50 transform translate-x-full smooth-transition flex flex-col">
+        <div class="flex items-center justify-between p-4 border-b">
+            <h2 class="text-xl font-bold text-primary">Menu</h2>
+            <button id="close-menu-btn" class="text-gray-500 hover:text-red-500">
+                <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <nav class="flex-grow p-4">
+            <ul class="space-y-2">
+                <li>
+                    <a href="#" class="nav-link block text-secondary font-semibold hover:bg-gray-100 smooth-transition px-3 py-2 rounded-md" data-page="orders-page">Orders</a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link block text-secondary font-semibold hover:bg-gray-100 smooth-transition px-3 py-2 rounded-md" data-page="add-products-page">Products</a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link block text-secondary font-semibold hover:bg-gray-100 smooth-transition px-3 py-2 rounded-md" data-page="banners-page">Manage Banners</a>
+                </li>
+                 <li>
+                    <a href="#" class="nav-link block text-secondary font-semibold hover:bg-gray-100 smooth-transition px-3 py-2 rounded-md" data-page="categories-page">Manage Categories</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+
+    <!-- Header Section -->
+    <header class="bg-primary shadow-md sticky top-0 z-30">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Panel Title -->
+                <div class="flex-shrink-0">
+                    <h1 class="text-3xl font-bold text-white tracking-wider">Admin Panel</h1>
+                </div>
+
+                <!-- Menu Bar Icon -->
+                <button id="menu-btn" class="text-white">
+                    <svg class="w-8 h-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content" class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 hidden">
+        
+        <!-- Add Products Page -->
+        <div id="add-products-page" class="admin-page hidden">
+            <h2 id="product-form-title" class="text-3xl font-bold text-primary mb-8">Add New Product</h2>
+            <div class="bg-white p-8 rounded-lg shadow-md">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Column 1 -->
+                    <div class="space-y-4">
+                        <div>
+                            <label for="product-id" class="block text-sm font-medium text-gray-700">Product ID</label>
+                            <input type="text" id="product-id" class="form-input mt-1 block w-full rounded-md shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="product-name" class="block text-sm font-medium text-gray-700">Product Name</label>
+                            <input type="text" id="product-name" class="form-input mt-1 block w-full rounded-md shadow-sm p-2">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="product-category" class="block text-sm font-medium text-gray-700">Category</label>
+                                <select id="product-category" class="form-input mt-1 block w-full rounded-md shadow-sm p-2"></select>
+                            </div>
+                            <div>
+                                <label for="product-price" class="block text-sm font-medium text-gray-700">Price</label>
+                                <input type="number" id="product-price" class="form-input mt-1 block w-full rounded-md shadow-sm p-2">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="product-image" class="block text-sm font-medium text-gray-700">Main Image URL</label>
+                            <input type="text" id="product-image" class="form-input mt-1 block w-full rounded-md shadow-sm p-2">
+                        </div>
+                        <div>
+                            <label for="product-gallery" class="block text-sm font-medium text-gray-700">Gallery Image URLs (comma separated)</label>
+                            <textarea id="product-gallery" rows="2" class="form-input mt-1 block w-full rounded-md shadow-sm p-2"></textarea>
+                        </div>
+                         <div>
+                            <label for="product-sizes" class="block text-sm font-medium text-gray-700">Available Sizes (comma separated)</label>
+                            <input type="text" id="product-sizes" class="form-input mt-1 block w-full rounded-md shadow-sm p-2" placeholder="e.g., M, L, XL or 30, 32, 34">
+                        </div>
+                    </div>
+                    <!-- Column 2 -->
+                    <div class="space-y-4">
+                        <div>
+                            <label for="product-tag" class="block text-sm font-medium text-gray-700">Tag</label>
+                            <select id="product-tag" class="form-input mt-1 block w-full rounded-md shadow-sm p-2">
+                                <option value="null">None</option>
+                                <option value="new">New</option>
+                                <option value="sale">Sale</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="product-description" class="block text-sm font-medium text-gray-700">Description</label>
+                            <textarea id="product-description" rows="3" class="form-input mt-1 block w-full rounded-md shadow-sm p-2"></textarea>
+                        </div>
+                        <div>
+                            <label for="product-size-guide" class="block text-sm font-medium text-gray-700">Size Guide Details</label>
+                            <textarea id="product-size-guide" rows="3" class="form-input mt-1 block w-full rounded-md shadow-sm p-2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 text-right">
+                    <button id="add-product-btn" class="bg-secondary text-white py-2 px-6 rounded-lg font-semibold smooth-transition hover:bg-primary">Add Product</button>
+                </div>
+            </div>
+
+            <hr class="my-12">
+
+            <h2 class="text-3xl font-bold text-primary mb-8">Current Products</h2>
+            <div id="current-products-list" class="space-y-4">
+                <p class="text-gray-500 bg-white p-8 rounded-lg shadow-md">Loading products...</p>
+            </div>
+        </div>
+
+        <!-- Orders Page -->
+        <div id="orders-page" class="admin-page hidden">
+             <h2 class="text-3xl font-bold text-primary mb-8">Overview</h2>
+             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                <!-- Stats -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-lg shadow-md text-center">
+                        <p class="text-sm text-gray-500">Total Amount</p>
+                        <p id="total-amount" class="text-2xl font-bold text-secondary">৳0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md text-center">
+                        <p class="text-sm text-gray-500">Total Sales</p>
+                        <p id="total-sales" class="text-2xl font-bold text-secondary">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md text-center">
+                        <p class="text-sm text-gray-500">Pending</p>
+                        <p id="pending-orders" class="text-2xl font-bold text-yellow-500">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md text-center">
+                        <p class="text-sm text-gray-500">Delivered</p>
+                        <p id="delivered-orders" class="text-2xl font-bold text-green-500">0</p>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md text-center">
+                        <p class="text-sm text-gray-500">Cancelled</p>
+                        <p id="cancelled-orders" class="text-2xl font-bold text-red-500">0</p>
+                    </div>
+                </div>
+                <!-- Chart -->
+                <div class="bg-white p-4 rounded-lg shadow-md">
+                    <canvas id="orderStatusChart"></canvas>
+                </div>
+             </div>
+             <h2 class="text-3xl font-bold text-primary mb-8">Customer Orders</h2>
+             <div id="orders-container" class="space-y-6">
+                 <p class="text-lg text-secondary bg-white p-8 rounded-lg shadow-md">Loading orders...</p>
+            </div>
+        </div>
+
+        <!-- Manage Banners Page -->
+        <div id="banners-page" class="admin-page hidden">
+            <h2 class="text-3xl font-bold text-primary mb-8">Manage Banners</h2>
+            <div class="bg-white p-8 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-secondary mb-4">Add New Banner</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label for="banner-image-url" class="block text-sm font-medium text-gray-700">Banner Image URL</label>
+                        <input type="text" id="banner-image-url" class="form-input mt-1 block w-full rounded-md shadow-sm p-2" placeholder="https://example.com/image.jpg">
+                    </div>
+                    <div>
+                        <label for="banner-category-link" class="block text-sm font-medium text-gray-700">Link to Category</label>
+                        <select id="banner-category-link" class="form-input mt-1 block w-full rounded-md shadow-sm p-2">
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                    <button id="add-banner-btn" class="bg-secondary text-white py-2 px-4 rounded-lg font-semibold smooth-transition hover:bg-primary h-10">Add Banner</button>
+                </div>
+
+                <hr class="my-8">
+
+                <h3 class="text-xl font-semibold text-secondary mb-4">Current Banners</h3>
+                <div id="current-banners-list" class="space-y-4">
+                    <p class="text-gray-500">Loading banners...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Manage Categories Page -->
+        <div id="categories-page" class="admin-page hidden">
+            <h2 class="text-3xl font-bold text-primary mb-8">Manage Categories</h2>
+            <div class="bg-white p-8 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold text-secondary mb-4">Add New Category</h3>
+                <div class="flex items-end gap-4">
+                    <div class="flex-grow">
+                        <label for="category-name" class="block text-sm font-medium text-gray-700">Category Name</label>
+                        <input type="text" id="category-name" class="form-input mt-1 block w-full rounded-md shadow-sm p-2" placeholder="e.g., Summer Collection">
+                    </div>
+                    <button id="add-category-btn" class="bg-secondary text-white py-2 px-6 rounded-lg font-semibold smooth-transition hover:bg-primary h-10">Add</button>
+                </div>
+
+                <hr class="my-8">
+
+                <h3 class="text-xl font-semibold text-secondary mb-4">Current Categories</h3>
+                <div id="current-categories-list" class="space-y-4">
+                    <p class="text-gray-500">Loading categories...</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    
+    <!-- Generic Message Modal -->
+    <div id="message-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-2xl w-full max-w-sm">
+            <div id="message-modal-header" class="flex justify-between items-center p-4 border-b">
+                <h2 id="message-modal-title" class="text-xl font-bold"></h2>
+                <button id="message-modal-close-x" class="text-gray-500 hover:text-red-500 hidden">
+                    <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+            <div class="p-6 text-center">
+                <p id="message-modal-text" class="text-lg"></p>
+            </div>
+            <div id="message-modal-footer" class="p-4 text-center">
+                <button id="message-modal-ok" class="bg-secondary text-white px-6 py-2 rounded-lg hidden">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loading-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-2xl p-8 text-center flex flex-col items-center">
+            <div class="loader mb-4"></div>
+            <p class="text-lg text-secondary">Processing...</p>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzVsKt5hD_WQnLmjnkeX5X0W_QVkEqrVC3BSLzipfXAsbRN_AQcwDoSofy-USOOmke_NQ/exec";
+
+            const loginModal = document.getElementById('login-modal');
+            const backdrop = document.getElementById('backdrop');
+            const mainContent = document.getElementById('main-content');
+            const loginBtn = document.getElementById('login-btn');
+            const adminIdInput = document.getElementById('adminId');
+            const adminPassInput = document.getElementById('adminPass');
+            const loginError = document.getElementById('login-error');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const adminPages = document.querySelectorAll('.admin-page');
+            const menuBtn = document.getElementById('menu-btn');
+            const sideMenu = document.getElementById('side-menu');
+            const closeMenuBtn = document.getElementById('close-menu-btn');
+
+            // Product Management Elements
+            const addProductBtn = document.getElementById('add-product-btn');
+            const productFormTitle = document.getElementById('product-form-title');
+            const productIdInput = document.getElementById('product-id');
+            const productNameInput = document.getElementById('product-name');
+            const productCategorySelect = document.getElementById('product-category');
+            const productPriceInput = document.getElementById('product-price');
+            const productImageInput = document.getElementById('product-image');
+            const productGalleryInput = document.getElementById('product-gallery');
+            const productSizesInput = document.getElementById('product-sizes');
+            const productTagSelect = document.getElementById('product-tag');
+            const productDescriptionInput = document.getElementById('product-description');
+            const productSizeGuideInput = document.getElementById('product-size-guide');
+            const currentProductsList = document.getElementById('current-products-list');
+
+            // Banner Management Elements
+            const addBannerBtn = document.getElementById('add-banner-btn');
+            const bannerImageUrlInput = document.getElementById('banner-image-url');
+            const bannerCategoryLinkSelect = document.getElementById('banner-category-link');
+            const currentBannersList = document.getElementById('current-banners-list');
+
+            // Category Management Elements
+            const addCategoryBtn = document.getElementById('add-category-btn');
+            const categoryNameInput = document.getElementById('category-name');
+            const currentCategoriesList = document.getElementById('current-categories-list');
+            
+            // Orders
+            const ordersContainer = document.getElementById('orders-container');
+            const totalAmountEl = document.getElementById('total-amount');
+            const totalSalesEl = document.getElementById('total-sales');
+            const pendingOrdersEl = document.getElementById('pending-orders');
+            const deliveredOrdersEl = document.getElementById('delivered-orders');
+            const cancelledOrdersEl = document.getElementById('cancelled-orders');
+            const orderStatusChartCtx = document.getElementById('orderStatusChart').getContext('2d');
+            let orderStatusChart;
+
+
+            // Message Modal Elements
+            const messageModal = document.getElementById('message-modal');
+            const messageModalTitle = document.getElementById('message-modal-title');
+            const messageModalText = document.getElementById('message-modal-text');
+            const messageModalCloseX = document.getElementById('message-modal-close-x');
+            const messageModalOkBtn = document.getElementById('message-modal-ok');
+            const loadingModal = document.getElementById('loading-modal');
+
+
+            const correctAdminId = 'admin';
+            const correctAdminPass = 'admin121';
+            
+            let categories = [];
+            let banners = [];
+            let products = [];
+            let editingProductId = null;
+
+            // Show login modal on page load
+            loginModal.classList.remove('hidden');
+            backdrop.classList.remove('hidden');
+
+            function handleLogin() {
+                const enteredId = adminIdInput.value;
+                const enteredPass = adminPassInput.value;
+
+                if (enteredId === correctAdminId && enteredPass === correctAdminPass) {
+                    loginModal.classList.add('hidden');
+                    backdrop.classList.add('hidden');
+                    mainContent.classList.remove('hidden');
+                    loadInitialData();
+                    switchPage('orders-page');
+                } else {
+                    loginError.textContent = 'Invalid ID or Password.';
+                    loginModal.classList.add('shake');
+                    setTimeout(() => {
+                        loginModal.classList.remove('shake');
+                        loginError.textContent = '';
+                    }, 1000);
+                }
+            }
+            
+            function switchPage(pageId) {
+                adminPages.forEach(page => page.classList.add('hidden'));
+                document.getElementById(pageId).classList.remove('hidden');
+
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    if (link.dataset.page === pageId) {
+                        link.classList.add('active');
+                    }
+                });
+                closeSideMenu();
+            }
+
+            function openSideMenu() {
+                sideMenu.classList.remove('translate-x-full');
+                backdrop.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeSideMenu() {
+                sideMenu.classList.add('translate-x-full');
+                if (loginModal.classList.contains('hidden')) {
+                    backdrop.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+            }
+            
+            function showLoading() {
+                loadingModal.classList.remove('hidden');
+                backdrop.classList.remove('hidden');
+            }
+
+            function hideLoading() {
+                loadingModal.classList.add('hidden');
+                backdrop.classList.add('hidden');
+            }
+
+            function showMessage(title, text, isSuccess) {
+                messageModalTitle.textContent = title;
+                messageModalText.textContent = text;
+                if (isSuccess) {
+                    messageModalOkBtn.classList.remove('hidden');
+                    messageModalCloseX.classList.add('hidden');
+                } else {
+                    messageModalOkBtn.classList.add('hidden');
+                    messageModalCloseX.classList.remove('hidden');
+                }
+                messageModal.classList.remove('hidden');
+                backdrop.classList.remove('hidden');
+            }
+
+            function closeMessage() {
+                messageModal.classList.add('hidden');
+                if (loginModal.classList.contains('hidden') && sideMenu.classList.contains('translate-x-full')) {
+                    backdrop.classList.add('hidden');
+                }
+            }
+
+            function populateCategoryDropdowns() {
+                const categoryOptions = categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('');
+                bannerCategoryLinkSelect.innerHTML = categoryOptions;
+                productCategorySelect.innerHTML = categoryOptions;
+            }
+
+            function renderBanners() {
+                if (banners.length === 0) {
+                    currentBannersList.innerHTML = '<p class="text-gray-500">No banners added yet.</p>';
+                    return;
+                }
+
+                currentBannersList.innerHTML = banners.map((banner, index) => `
+                    <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                        <div class="flex items-center gap-4">
+                            <img src="${banner.imageUrl}" class="w-24 h-12 object-cover rounded-md">
+                            <div>
+                                <p class="font-semibold">Linked to: <span class="font-normal text-secondary">${banner.category}</span></p>
+                            </div>
+                        </div>
+                        <button class="delete-banner-btn text-red-500 hover:text-red-700" data-index="${index}">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                `).join('');
+            }
+
+            function renderProducts() {
+                if (products.length === 0) {
+                    currentProductsList.innerHTML = '<p class="text-gray-500 bg-white p-8 rounded-lg shadow-md">No products added yet.</p>';
+                    return;
+                }
+
+                currentProductsList.innerHTML = products.map((product, index) => `
+                    <div class="flex items-center justify-between bg-white p-4 rounded-lg shadow-md">
+                        <div class="flex items-center gap-4">
+                            <img src="${product.image}" class="w-16 h-20 object-cover rounded-md">
+                            <div>
+                                <p class="font-bold text-lg text-secondary">${product.name}</p>
+                                <p class="text-sm text-gray-500">${product.category} | ৳${product.price}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <button class="edit-product-btn text-blue-500 hover:text-blue-700" data-id="${product.id}">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </button>
+                            <button class="delete-product-btn text-red-500 hover:text-red-700" data-id="${product.id}">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            function renderCategoriesList() {
+                if (categories.length === 0) {
+                    currentCategoriesList.innerHTML = '<p class="text-gray-500">No categories added yet.</p>';
+                    return;
+                }
+                currentCategoriesList.innerHTML = categories.map((cat, index) => `
+                    <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                        <p class="font-semibold text-secondary">${cat.name}</p>
+                        <button class="delete-category-btn text-red-500 hover:text-red-700" data-name="${cat.name}">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                `).join('');
+            }
+            
+            function renderOrders(orders) {
+                if (orders.length === 0) {
+                    ordersContainer.innerHTML = '<p class="text-lg text-secondary">No orders yet.</p>';
+                    return;
+                }
+                ordersContainer.innerHTML = orders.map(order => {
+                    let productsHtml = 'Invalid product data';
+                    if (typeof order.products === 'string' && order.products.trim().startsWith('[')) {
+                        try {
+                            const products = JSON.parse(order.products);
+                            if (Array.isArray(products)) {
+                                productsHtml = products.map(p => `<div>${p.name} (x${p.quantity}) - Size: ${p.size}</div>`).join('');
+                            }
+                        } catch (e) {
+                            console.error("Could not parse order products JSON:", order.products, e);
+                            productsHtml = "Error displaying products.";
+                        }
+                    } else {
+                        productsHtml = order.products || "No product data.";
+                    }
+                    return `
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <h4 class="font-bold text-secondary">Customer Details</h4>
+                                    <p class="font-semibold">${order.customerName}</p>
+                                    <p class="text-sm text-gray-600">${order.address}</p>
+                                    <p class="text-sm text-gray-600">${order.mobile}</p>
+                                    ${order.comment ? `<p class="text-sm text-gray-500 mt-2"><b>Comment:</b> ${order.comment}</p>` : ''}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-secondary">Order Details</h4>
+                                    <div class="text-sm">${productsHtml}</div>
+                                    <p class="font-semibold mt-2">Total: ${order.totalAmount}</p>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-secondary">Payment & Delivery</h4>
+                                    <p class="text-sm"><b>Method:</b> ${order.paymentMethod} (${order.deliveryOption})</p>
+                                    ${order.transactionId ? `<p class="text-xs text-gray-500">TrxID: ${order.transactionId}</p>` : ''}
+                                    ${order.paymentNumber ? `<p class="text-xs text-gray-500">From: ${order.paymentNumber}</p>` : ''}
+                                    <div class="mt-2">
+                                        <label for="status-${order.date}" class="text-sm font-medium">Status:</label>
+                                        <select id="status-${order.date}" class="order-status-select form-input p-1 rounded-md" data-order-id="${order.date}">
+                                            <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                            <option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option>
+                                            <option value="Shipped" ${order.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
+                                            <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                                            <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            function renderOverview(orders) {
+                const totalSales = orders.length;
+                const pending = orders.filter(o => o.status === 'Pending' || o.status === 'Processing' || o.status === 'Shipped').length;
+                const delivered = orders.filter(o => o.status === 'Delivered').length;
+                const cancelled = orders.filter(o => o.status === 'Cancelled').length;
+                
+                let totalAmount = 0;
+                orders.forEach(order => {
+                    if (order.status !== 'Cancelled') {
+                        const amountString = order.totalAmount.replace('৳', '').trim();
+                        const deliveryCharge = order.deliveryOption.includes('Inside Dhaka') ? 70 : 130;
+                        totalAmount += (parseFloat(amountString) - deliveryCharge);
+                    }
+                });
+
+                totalAmountEl.textContent = `৳${totalAmount.toFixed(2)}`;
+                totalSalesEl.textContent = totalSales;
+                pendingOrdersEl.textContent = pending;
+                deliveredOrdersEl.textContent = delivered;
+                cancelledOrdersEl.textContent = cancelled;
+
+                // Chart
+                if (orderStatusChart) {
+                    orderStatusChart.destroy();
+                }
+                orderStatusChart = new Chart(orderStatusChartCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Pending', 'Delivered', 'Cancelled'],
+                        datasets: [{
+                            label: 'Order Status',
+                            data: [pending, delivered, cancelled],
+                            backgroundColor: [
+                                'rgb(255, 205, 86)',
+                                'rgb(75, 192, 192)',
+                                'rgb(255, 99, 132)'
+                            ],
+                            hoverOffset: 4
+                        }]
+                    }
+                });
+            }
+
+            async function loadInitialData() {
+                showLoading();
+                try {
+                    const [productsData, categoriesData, bannersData, ordersData] = await Promise.all([
+                        fetch(`${SCRIPT_URL}?action=getProducts`).then(res => res.json()),
+                        fetch(`${SCRIPT_URL}?action=getCategories`).then(res => res.json()),
+                        fetch(`${SCRIPT_URL}?action=getBanners`).then(res => res.json()),
+                        fetch(`${SCRIPT_URL}?action=getOrders`).then(res => res.json())
+                    ]);
+                    products = productsData;
+                    categories = categoriesData;
+                    banners = bannersData;
+                    
+                    renderProducts();
+                    renderCategoriesList();
+                    renderBanners();
+                    renderOrders(ordersData.reverse());
+                    renderOverview(ordersData);
+                    populateCategoryDropdowns();
+                    
+                } catch (error) {
+                    console.error("Error loading data:", error);
+                    showMessage('Error', 'Failed to load data from Google Sheets.', false);
+                } finally {
+                    hideLoading();
+                }
+            }
+
+            addBannerBtn.addEventListener('click', () => {
+                const imageUrl = bannerImageUrlInput.value.trim();
+                const category = bannerCategoryLinkSelect.value;
+                if (imageUrl) {
+                    const data = { action: 'addBanner', imageUrl, category };
+                    showLoading();
+                    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data)})
+                        .then(res => res.json())
+                        .then(() => {
+                            loadInitialData(); // Reload all data to stay in sync
+                            showMessage('Success', 'Banner added successfully!', true);
+                            bannerImageUrlInput.value = '';
+                        }).catch(err => showMessage('Error', 'Could not add banner.', false))
+                        .finally(() => hideLoading());
+                } else {
+                    showMessage('Warning', 'Please enter a banner image URL.', false);
+                }
+            });
+            
+            currentBannersList.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-banner-btn');
+                if (deleteBtn) {
+                    // Logic to delete from sheet needs to be added to Apps Script
+                }
+            });
+
+            addProductBtn.addEventListener('click', () => {
+                const productData = {
+                    id: editingProductId || productIdInput.value.trim(),
+                    name: productNameInput.value,
+                    category: productCategorySelect.value,
+                    price: parseFloat(productPriceInput.value),
+                    image: productImageInput.value,
+                    gallery: productGalleryInput.value.split(',').map(url => url.trim()),
+                    sizes: productSizesInput.value,
+                    tag: productTagSelect.value === 'null' ? null : productTagSelect.value,
+                    description: productDescriptionInput.value,
+                    sizeGuide: productSizeGuideInput.value
+                };
+
+                if (!productData.id || !productData.name || !productData.price || !productData.image || !productData.sizes) {
+                    showMessage('Warning', 'Please fill in ID, Name, Price, Main Image URL, and Available Sizes.', false);
+                    return;
+                }
+
+                productData.action = editingProductId ? 'updateProduct' : 'addProduct';
+                showLoading();
+                fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(productData)})
+                    .then(res => res.json())
+                    .then(() => {
+                        loadInitialData();
+                        showMessage('Success', `Product ${editingProductId ? 'updated' : 'added'} successfully!`, true);
+                        resetProductForm();
+                    }).catch(err => showMessage('Error', `Could not ${editingProductId ? 'update' : 'add'} product.`, false))
+                    .finally(() => hideLoading());
+            });
+            
+            function resetProductForm() {
+                productIdInput.value = '';
+                productNameInput.value = '';
+                productPriceInput.value = '';
+                productImageInput.value = '';
+                productGalleryInput.value = '';
+                productSizesInput.value = '';
+                productDescriptionInput.value = '';
+                productSizeGuideInput.value = '';
+                productFormTitle.textContent = 'Add New Product';
+                addProductBtn.textContent = 'Add Product';
+                editingProductId = null;
+                productIdInput.disabled = false;
+            }
+
+            currentProductsList.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-product-btn');
+                const editBtn = e.target.closest('.edit-product-btn');
+
+                if (deleteBtn) {
+                    const productId = deleteBtn.dataset.id;
+                    const data = { action: 'deleteProduct', id: productId };
+                    showLoading();
+                    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data)})
+                        .then(res => res.json()).then(() => loadInitialData())
+                        .catch(err => showMessage('Error', 'Could not delete product.', false))
+                        .finally(() => hideLoading());
+                }
+
+                if (editBtn) {
+                    const productId = editBtn.dataset.id;
+                    const productToEdit = products.find(p => p.id == productId);
+                    if (productToEdit) {
+                        productIdInput.value = productToEdit.id;
+                        productNameInput.value = productToEdit.name;
+                        productCategorySelect.value = productToEdit.category;
+                        productPriceInput.value = productToEdit.price;
+                        productImageInput.value = productToEdit.image;
+                        productGalleryInput.value = productToEdit.gallery;
+                        productSizesInput.value = productToEdit.sizes;
+                        productTagSelect.value = productToEdit.tag || 'null';
+                        productDescriptionInput.value = productToEdit.description;
+                        productSizeGuideInput.value = productToEdit.sizeGuide;
+                        
+                        editingProductId = productId;
+                        productIdInput.disabled = true;
+                        productFormTitle.textContent = 'Edit Product';
+                        addProductBtn.textContent = 'Update Product';
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                }
+            });
+
+            addCategoryBtn.addEventListener('click', () => {
+                const newCategory = categoryNameInput.value.trim();
+                if (newCategory && !categories.find(c => c.name === newCategory)) {
+                    const data = { action: 'addCategory', name: newCategory };
+                    showLoading();
+                    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data)})
+                        .then(res => res.json())
+                        .then(() => {
+                            loadInitialData();
+                            showMessage('Success', 'Category added successfully!', true);
+                            categoryNameInput.value = '';
+                        }).catch(err => showMessage('Error', 'Could not add category.', false))
+                        .finally(() => hideLoading());
+                } else if (categories.find(c => c.name === newCategory)) {
+                    showMessage('Warning', 'This category already exists.', false);
+                } else {
+                    showMessage('Warning', 'Please enter a category name.', false);
+                }
+            });
+
+            currentCategoriesList.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-category-btn');
+                if (deleteBtn) {
+                    const categoryName = deleteBtn.dataset.name;
+                    const data = { action: 'deleteCategory', name: categoryName };
+                    showLoading();
+                    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data)})
+                        .then(res => res.json()).then(() => loadInitialData())
+                        .catch(err => showMessage('Error', 'Could not delete category.', false))
+                        .finally(() => hideLoading());
+                }
+            });
+
+            ordersContainer.addEventListener('change', (e) => {
+                const selectEl = e.target.closest('.order-status-select');
+                if (selectEl) {
+                    const orderId = selectEl.dataset.orderId;
+                    const newStatus = selectEl.value;
+                    const data = { action: 'updateOrderStatus', orderId, newStatus };
+                    showLoading();
+                    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(data)})
+                        .then(res => res.json())
+                        .then(response => {
+                            if (response.status === 'success') {
+                                showMessage('Success', 'Order status updated!', true);
+                            } else {
+                                showMessage('Error', 'Could not update status.', false);
+                            }
+                        }).catch(err => showMessage('Error', 'Could not update status.', false))
+                        .finally(() => hideLoading());
+                }
+            });
+
+            loginBtn.addEventListener('click', handleLogin);
+            adminPassInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleLogin();
+            });
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchPage(e.target.dataset.page);
+                });
+            });
+
+            menuBtn.addEventListener('click', openSideMenu);
+            closeMenuBtn.addEventListener('click', closeSideMenu);
+            backdrop.addEventListener('click', () => {
+                if (!loginModal.classList.contains('hidden')) return;
+                closeSideMenu();
+                closeMessage();
+            });
+            messageModalOkBtn.addEventListener('click', closeMessage);
+            messageModalCloseX.addEventListener('click', closeMessage);
+
+            // Initial setup
+            // Data will be loaded after successful login
+        });
+    </script>
+
+</body>
+</html>
